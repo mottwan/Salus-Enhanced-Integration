@@ -1,6 +1,7 @@
 {
   "domain": "salus_enhanced",
   "name": "Salus Enhanced",
+  "config_flow": true,
   "version": "1.0.0",
   "documentation": "https://github.com/mottwan/Salus-Enhanced-Integration",
   "requirements": [],
