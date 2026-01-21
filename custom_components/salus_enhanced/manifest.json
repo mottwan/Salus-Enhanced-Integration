@@ -2,9 +2,12 @@
   "domain": "salus_enhanced",
   "name": "Salus Enhanced",
   "config_flow": true,
-  "version": "1.0.0",
+  "version": "1.0.3",
   "documentation": "https://github.com/mottwan/Salus-Enhanced-Integration",
-  "requirements": [],
+  "requirements": [
+    "pyit500 @ git+https://github.com/RichyA/pyit500.git@main",
+    "pyit600 @ git+https://github.com/epoplavskis/pyit600.git@master"
+  ],
   "dependencies": [],
   "codeowners": ["@mottwan"]
 }
