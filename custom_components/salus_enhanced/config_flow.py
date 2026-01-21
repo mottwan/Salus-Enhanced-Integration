@@ -6,9 +6,10 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant import config_entries
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
@@ -19,7 +20,6 @@ from .const import (
     GATEWAY_TYPE_IT500,
     GATEWAY_TYPE_IT600,
 )
-from .gateway import create_gateway
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,14 +50,25 @@ STEP_IT500_SCHEMA = vol.Schema(
 )
 
 
+class CannotConnect(HomeAssistantError):
+    """Error to indicate we cannot connect."""
+
+
 async def validate_it600(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate IT600 gateway connection."""
+    # importăm gateway lazy, ca să nu stricăm importul config_flow dacă lipsesc librăriile
+    try:
+        from .gateway import create_gateway
+    except Exception as err:  # ModuleNotFoundError, ImportError etc.
+        _LOGGER.error("Failed to import gateway module for IT600: %s", err)
+        raise CannotConnect from err
+
     gateway = create_gateway(
         GATEWAY_TYPE_IT600,
         host=data[CONF_HOST],
         euid=data[CONF_EUID],
     )
-    
+
     try:
         await gateway.connect()
         await gateway.poll_status()
@@ -71,13 +82,19 @@ async def validate_it600(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 async def validate_it500(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate IT500 cloud connection."""
+    try:
+        from .gateway import create_gateway
+    except Exception as err:
+        _LOGGER.error("Failed to import gateway module for IT500: %s", err)
+        raise CannotConnect from err
+
     gateway = create_gateway(
         GATEWAY_TYPE_IT500,
         username=data[CONF_USERNAME],
         password=data[CONF_PASSWORD],
         device_id=data[CONF_DEVICE_ID],
     )
-    
+
     try:
         await gateway.connect()
         await gateway.poll_status()
@@ -89,25 +106,25 @@ async def validate_it500(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": f"Salus IT500 Device {data[CONF_DEVICE_ID]}"}
 
 
-class SalusConfigFlow(ConfigFlow, domain=DOMAIN):
+class SalusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Salus Enhanced."""
 
     VERSION = 1
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize config flow."""
-        self._gateway_type = None
+        self._gateway_type: str | None = None
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle the initial step - select gateway type."""
         if user_input is not None:
             self._gateway_type = user_input[CONF_GATEWAY_TYPE]
-            
+
             if self._gateway_type == GATEWAY_TYPE_IT600:
                 return await self.async_step_it600()
-            else:
+            if self._gateway_type == GATEWAY_TYPE_IT500:
                 return await self.async_step_it500()
 
         return self.async_show_form(
@@ -117,23 +134,26 @@ class SalusConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_it600(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle IT600 gateway configuration."""
         errors: dict[str, str] = {}
-        
+
         if user_input is not None:
             try:
                 info = await validate_it600(self.hass, user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Unexpected exception during IT600 validation")
                 errors["base"] = "unknown"
             else:
                 user_input[CONF_GATEWAY_TYPE] = GATEWAY_TYPE_IT600
                 await self.async_set_unique_id(f"it600_{user_input[CONF_EUID]}")
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return self.async_create_entry(
+                    title=info["title"],
+                    data=user_input,
+                )
 
         return self.async_show_form(
             step_id="it600",
@@ -146,23 +166,26 @@ class SalusConfigFlow(ConfigFlow, domain=DOMAIN):
 
     async def async_step_it500(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> FlowResult:
         """Handle IT500 cloud configuration."""
         errors: dict[str, str] = {}
-        
+
         if user_input is not None:
             try:
                 info = await validate_it500(self.hass, user_input)
             except CannotConnect:
                 errors["base"] = "cannot_connect"
-            except Exception:
-                _LOGGER.exception("Unexpected exception")
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Unexpected exception during IT500 validation")
                 errors["base"] = "unknown"
             else:
                 user_input[CONF_GATEWAY_TYPE] = GATEWAY_TYPE_IT500
                 await self.async_set_unique_id(f"it500_{user_input[CONF_DEVICE_ID]}")
                 self._abort_if_unique_id_configured()
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return self.async_create_entry(
+                    title=info["title"],
+                    data=user_input,
+                )
 
         return self.async_show_form(
             step_id="it500",
@@ -172,7 +195,3 @@ class SalusConfigFlow(ConfigFlow, domain=DOMAIN):
                 "info": "Login to https://salus-it500.com and find Device ID in the URL (devId parameter)."
             },
         )
-
-
-class CannotConnect(HomeAssistantError):
-    """Error to indicate we cannot connect."""
