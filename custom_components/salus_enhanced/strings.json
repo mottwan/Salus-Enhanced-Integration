@@ -1,0 +1,46 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select Salus Gateway Type",
+        "description": "Choose your Salus gateway type",
+        "data": {
+          "gateway_type": "Gateway Type"
+        }
+      },
+      "it600": {
+        "title": "Set up IT600 Gateway",
+        "description": "Enter your IT600 local gateway connection details. {info}",
+        "data": {
+          "host": "Gateway IP Address",
+          "euid": "Gateway EUID"
+        },
+        "data_description": {
+          "host": "The local IP address of your Salus UGE600 gateway (e.g., 192.168.1.100)",
+          "euid": "The EUID found on the bottom of your gateway (or try 0000000000000000)"
+        }
+      },
+      "it500": {
+        "title": "Set up IT500 Device",
+        "description": "Enter your IT500 cloud account details. {info}",
+        "data": {
+          "username": "Email",
+          "password": "Password",
+          "device_id": "Device ID"
+        },
+        "data_description": {
+          "username": "Your salus-it500.com email address",
+          "password": "Your salus-it500.com password",
+          "device_id": "Device ID from URL (devId parameter)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect. Please check your credentials and network connection.",
+      "unknown": "An unexpected error occurred. Please check the logs for more details."
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  }
+}

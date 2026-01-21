@@ -1,0 +1,46 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Selectați Tipul de Gateway Salus",
+        "description": "Alegeți tipul de gateway Salus",
+        "data": {
+          "gateway_type": "Tip Gateway"
+        }
+      },
+      "it600": {
+        "title": "Configurare Gateway IT600",
+        "description": "Introduceți detaliile pentru gateway-ul IT600 local. {info}",
+        "data": {
+          "host": "Adresa IP Gateway",
+          "euid": "EUID Gateway"
+        },
+        "data_description": {
+          "host": "Adresa IP locală a gateway-ului Salus UGE600 (ex: 192.168.1.100)",
+          "euid": "EUID-ul de pe partea de jos a gateway-ului (sau încercați 0000000000000000)"
+        }
+      },
+      "it500": {
+        "title": "Configurare Dispozitiv IT500",
+        "description": "Introduceți detaliile contului cloud IT500. {info}",
+        "data": {
+          "username": "Email",
+          "password": "Parolă",
+          "device_id": "ID Dispozitiv"
+        },
+        "data_description": {
+          "username": "Adresa dvs. de email pentru salus-it500.com",
+          "password": "Parola dvs. pentru salus-it500.com",
+          "device_id": "ID-ul dispozitivului din URL (parametrul devId)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Conexiune eșuată. Verificați credențialele și conexiunea la rețea.",
+      "unknown": "A apărut o eroare neașteptată. Verificați log-urile pentru detalii."
+    },
+    "abort": {
+      "already_configured": "Acest dispozitiv este deja configurat."
+    }
+  }
+}
