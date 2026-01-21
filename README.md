@@ -37,7 +37,7 @@ An enhanced Home Assistant integration that supports **IT600 and IT500** gateway
 
 1. Copy the folder:
    ```
-   custom_components/salus_enhanced_integration
+   custom_components/salus_enhanced
    ```
    to:
    ```
@@ -54,7 +54,7 @@ Since `config_flow` is not functional in **v1.0.1**, the integration must be con
 ### IT600 (Local Gateway – UGE600)
 
 ```yaml
-salus_enhanced_integration:
+salus_enhanced:
   platform: it600
   host: 192.168.1.100
   euid: "001E5E0D32906128"
@@ -75,7 +75,7 @@ salus_enhanced_integration:
 ### IT500 (Cloud – salus-it500.com)
 
 ```yaml
-salus_enhanced_integration:
+salus_enhanced:
   platform: it500
   email: your@email.com
   password: your_password

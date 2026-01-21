@@ -154,6 +154,108 @@ class IT500Gateway(SalusGatewayBase):
         self._password = password
         self._device_id = device_id
         self._client = None
+        self._device_data: dict[str, Any] = {}
+
+    async def connect(self) -> None:
+        """Connect to the IT500 cloud."""
+        try:
+            # importăm aici ca să nu stricăm importul config_flow dacă lipsesc deps
+            from pyit500.auth import Auth
+            from pyit500.pyit500 import PyIt500
+        except Exception as err:  # ImportError etc.
+            _LOGGER.error("pyit500 library not available: %s", err)
+            raise
+
+        # Auth este o clasă, async_login este metodă de instanță
+        auth = Auth(self._username, self._password)
+        await auth.async_login()
+
+        # Clientul principal folosește auth deja logat
+        self._client = PyIt500(auth)
+
+    async def poll_status(self) -> dict[str, Any]:
+        """Poll status from IT500 cloud."""
+        if not self._client:
+            raise RuntimeError("IT500 gateway not connected")
+
+        # pyit500 expune async_get_device
+        device = await self._client.async_get_device(self._device_id)
+
+        # device este, în mod normal, un obiect; luăm atributele prin getattr/vars
+        if hasattr(device, "__dict__"):
+            raw = device.__dict__
+        else:
+            # fallback dacă e deja dict-like
+            raw = dict(device)
+
+        self._device_data = {
+            "climate": {
+                self._device_id: {
+                    "model": raw.get("product", "IT500"),
+                    "current_temperature": raw.get("CH1currentTemperature"),
+                    "target_temperature": raw.get("CH1currentSetPoint"),
+                    "hvac_mode": self._get_hvac_mode(raw),
+                    "is_heating": raw.get("CH1heatOnOff") == 1,
+                    "preset_mode": raw.get("CH1autoOff", "manual"),
+                }
+            },
+            "binary_sensor": {},
+            "sensor": {},
+            "switch": {},
+            "cover": {},
+        }
+
+        return self._device_data
+
+    def _get_hvac_mode(self, data: dict) -> str:
+        """Get HVAC mode from IT500 data."""
+        if data.get("CH1heatOffOn") == 0:
+            return "off"
+        if data.get("CH1autoOff") == "auto":
+            return "auto"
+        return "heat"
+
+    async def close(self) -> None:
+        """Close connection to gateway."""
+        # PyIt500 nu are close(), nu facem nimic
+        return
+
+    # === „getter”-e necesare pentru platforme ===
+
+    def get_climate_devices(self) -> dict[str, Any]:
+        return self._device_data.get("climate", {})
+
+    def get_binary_sensor_devices(self) -> dict[str, Any]:
+        return self._device_data.get("binary_sensor", {})
+
+    def get_sensor_devices(self) -> dict[str, Any]:
+        return self._device_data.get("sensor", {})
+
+    def get_switch_devices(self) -> dict[str, Any]:
+        return self._device_data.get("switch", {})
+
+    def get_cover_devices(self) -> dict[str, Any]:
+        return self._device_data.get("cover", {})
+
+    # === comenzi de scriere – deocamdată le lăsăm neimplementate ===
+
+    async def set_climate_device_temperature(self, device_id: str, temperature: float) -> None:
+        _LOGGER.warning("set_climate_device_temperature not implemented yet for IT500")
+
+    async def set_climate_device_mode(self, device_id: str, mode: str) -> None:
+        _LOGGER.warning("set_climate_device_mode not implemented yet for IT500")
+
+    async def set_climate_device_preset(self, device_id: str, preset: str) -> None:
+        _LOGGER.warning("set_climate_device_preset not implemented yet for IT500")
+
+    """Wrapper for IT500 cloud gateway."""
+
+    def __init__(self, username: str, password: str, device_id: str) -> None:
+        """Initialize IT500 gateway."""
+        self._username = username
+        self._password = password
+        self._device_id = device_id
+        self._client = None
         self._device_data: Dict[str, Any] = {}
 
     async def connect(self) -> None:
@@ -298,12 +400,11 @@ def create_gateway(gateway_type: str, **kwargs) -> SalusGatewayBase:
             host=kwargs["host"],
             euid=kwargs["euid"],
         )
-
     if gateway_type == GATEWAY_TYPE_IT500:
         return IT500Gateway(
             username=kwargs["username"],
             password=kwargs["password"],
             device_id=kwargs["device_id"],
         )
-
     raise ValueError(f"Unknown gateway type: {gateway_type}")
+
