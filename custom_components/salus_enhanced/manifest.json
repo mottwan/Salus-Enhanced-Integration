@@ -2,7 +2,7 @@
   "domain": "salus_enhanced_integration",
   "name": "Salus Enhanced Integration",
   "config_flow": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "documentation": "https://github.com/mottwan/Salus-Enhanced-Integration",
   "requirements": [
     "pyit500 @ git+https://github.com/RichyA/pyit500.git@main",
