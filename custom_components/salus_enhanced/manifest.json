@@ -1,0 +1,13 @@
+{
+  "domain": "salus_enhanced",
+  "name": "Salus Enhanced",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/yourusername/salus_enhanced",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "requirements": ["pyit600>=0.5.1", "pyit500>=0.1.0"],
+  "version": "1.0.0",
+  "min_ha_version": "2024.1.0"
+}
