@@ -1,5 +1,5 @@
 {
   "name": "Salus Enhanced Integration",
-  "domains": ["salus_enhanced"],
+  "domains": ["salus_enhanced_integration"],
   "render_readme": true
 }

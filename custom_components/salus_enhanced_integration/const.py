@@ -1,7 +1,7 @@
 """Constants for the Salus Enhanced integration."""
 from homeassistant.const import Platform
 
-DOMAIN = "salus_enhanced"
+DOMAIN = "salus_enhanced_integration"
 
 # Configuration
 CONF_EUID = "euid"
