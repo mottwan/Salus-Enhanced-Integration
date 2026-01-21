@@ -1,0 +1,8 @@
+{
+  "config": {
+    "error": {
+      "invalid_auth": "Invalid username or password",
+      "invalid_device_id": "Device ID must be a number"
+    }
+  }
+}
