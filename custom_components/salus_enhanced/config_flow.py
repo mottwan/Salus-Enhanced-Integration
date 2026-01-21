@@ -53,6 +53,13 @@ STEP_IT500_SCHEMA = vol.Schema(
 class CannotConnect(HomeAssistantError):
     """Error to indicate we cannot connect."""
 
+class InvalidAuth(HomeAssistantError):
+    """Error to indicate invalid authentication."""
+
+
+class InvalidDeviceId(HomeAssistantError):
+    """Error to indicate invalid or malformed device id."""
+    
 
 async def validate_it600(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
     """Validate IT600 gateway connection."""
@@ -81,29 +88,22 @@ async def validate_it600(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
 
 async def validate_it500(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validate IT500 cloud connection."""
-    try:
-        from .gateway import create_gateway
-    except Exception as err:
-        _LOGGER.error("Failed to import gateway module for IT500: %s", err)
-        raise CannotConnect from err
+    """Basic validation for IT500 cloud config.
 
-    gateway = create_gateway(
-        GATEWAY_TYPE_IT500,
-        username=data[CONF_USERNAME],
-        password=data[CONF_PASSWORD],
-        device_id=data[CONF_DEVICE_ID],
-    )
+    We do NOT talk to pyit500 here to avoid import/runtime issues during config flow.
+    Real connectivity errors are handled in async_setup_entry.
+    """
+    username = data.get(CONF_USERNAME, "").strip()
+    password = data.get(CONF_PASSWORD, "")
+    device_id = data.get(CONF_DEVICE_ID, "").strip()
 
-    try:
-        await gateway.connect()
-        await gateway.poll_status()
-        await gateway.close()
-    except Exception as err:
-        _LOGGER.error("Failed to connect to IT500 cloud: %s", err)
-        raise CannotConnect from err
+    if not username or not password:
+        raise InvalidAuth
 
-    return {"title": f"Salus IT500 Device {data[CONF_DEVICE_ID]}"}
+    if not device_id.isdigit():
+        raise InvalidDeviceId
+
+    return {"title": f"Salus IT500 Device {device_id}"}
 
 
 class SalusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -173,8 +173,10 @@ class SalusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 info = await validate_it500(self.hass, user_input)
-            except CannotConnect:
-                errors["base"] = "cannot_connect"
+            except InvalidAuth:
+                errors["base"] = "invalid_auth"
+            except InvalidDeviceId:
+                errors["device_id"] = "invalid_device_id"
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Unexpected exception during IT500 validation")
                 errors["base"] = "unknown"
