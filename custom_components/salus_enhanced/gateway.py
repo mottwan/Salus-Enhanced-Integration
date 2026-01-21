@@ -157,11 +157,7 @@ class IT500Gateway(SalusGatewayBase):
         self._device_data: Dict[str, Any] = {}
 
     async def connect(self) -> None:
-        """Initialize client and verify credentials.
-
-        NOTE: pyit500 does not expose a login() method on PyIt500.
-        Auth.async_login() is responsible for authenticating.
-        """
+        """Initialize IT500 client and verify credentials."""
         try:
             from pyit500.pyit500 import PyIt500
             from pyit500.auth import Auth
@@ -169,16 +165,17 @@ class IT500Gateway(SalusGatewayBase):
             _LOGGER.error("pyit500 library not available: %s", err)
             raise
 
-        # Auth handles login internally via async_login
-        auth = await Auth.async_login(self._username, self._password)
-        self._client = PyIt500(auth)
+    # Auth is initialized with credentials (no async_login exists)
+    auth = Auth(self._username, self._password)
+    self._client = PyIt500(auth)
 
-        # Optional sanity check – fetch user
-        try:
-            await self._client.async_get_user()
-        except Exception as err:
-            _LOGGER.error("Failed to fetch IT500 user: %s", err)
-            raise
+    # Sanity check: try to fetch device list
+    try:
+        await self._client.async_get_device_list()
+    except Exception as err:
+        _LOGGER.error("Failed to authenticate or fetch IT500 devices: %s", err)
+        raise
+
 
     async def poll_status(self) -> dict[str, Any]:
         """Poll status from IT500 cloud."""
