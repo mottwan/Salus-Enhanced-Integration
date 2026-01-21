@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Dict
 
 from .const import GATEWAY_TYPE_IT500, GATEWAY_TYPE_IT600
 
@@ -46,13 +46,19 @@ class SalusGatewayBase(ABC):
         """Get cover devices."""
 
 
+# ---------------------------------------------------------------------------
+# IT600 (local) – bazat pe pyit600
+# ---------------------------------------------------------------------------
+
+
 class IT600Gateway(SalusGatewayBase):
     """Wrapper for IT600 local gateway."""
 
-    def __init__(self, host: str, euid: str):
+    def __init__(self, host: str, euid: str) -> None:
         """Initialize IT600 gateway."""
+        # Lazy import – doar când chiar folosim IT600
         from pyit600.gateway import IT600Gateway as PyIT600Gateway
-        
+
         self._gateway = PyIT600Gateway(host=host, euid=euid)
 
     async def connect(self) -> None:
@@ -62,13 +68,14 @@ class IT600Gateway(SalusGatewayBase):
     async def poll_status(self) -> dict[str, Any]:
         """Poll status from gateway."""
         await self._gateway.poll_status()
-        return {
+        data = {
             "climate": self._gateway.get_climate_devices(),
             "binary_sensor": self._gateway.get_binary_sensor_devices(),
             "sensor": self._gateway.get_sensor_devices(),
             "switch": self._gateway.get_switch_devices(),
             "cover": self._gateway.get_cover_devices(),
         }
+        return data
 
     async def close(self) -> None:
         """Close connection to gateway."""
@@ -94,7 +101,9 @@ class IT600Gateway(SalusGatewayBase):
         """Get cover devices."""
         return self._gateway.get_cover_devices()
 
-    async def set_climate_device_temperature(self, device_id: str, temperature: float) -> None:
+    async def set_climate_device_temperature(
+        self, device_id: str, temperature: float
+    ) -> None:
         """Set climate device temperature."""
         await self._gateway.set_climate_device_temperature(device_id, temperature)
 
@@ -131,47 +140,90 @@ class IT600Gateway(SalusGatewayBase):
         await self._gateway.set_cover_position(device_id, position)
 
 
+# ---------------------------------------------------------------------------
+# IT500 (cloud) – bazat pe pyit500
+# ---------------------------------------------------------------------------
+
+
 class IT500Gateway(SalusGatewayBase):
     """Wrapper for IT500 cloud gateway."""
 
-    def __init__(self, username: str, password: str, device_id: str):
+    def __init__(self, username: str, password: str, device_id: str) -> None:
         """Initialize IT500 gateway."""
         self._username = username
         self._password = password
         self._device_id = device_id
         self._client = None
-        self._device_data = {}
+        self._device_data: Dict[str, Any] = {}
 
     async def connect(self) -> None:
-        """Connect to the gateway."""
+        """Initialize client and verify credentials.
+
+        NOTE: pyit500 does not expose a login() method on PyIt500.
+        Auth.async_login() is responsible for authenticating.
+        """
         try:
-            from pyit500.client import IT500Client
-            
-            self._client = IT500Client(self._username, self._password)
-            await self._client.login()
-        except ImportError:
-            _LOGGER.error(
-                "pyit500 library not available. Install with: pip install pyit500"
-            )
+            from pyit500.pyit500 import PyIt500
+            from pyit500.auth import Auth
+        except Exception as err:
+            _LOGGER.error("pyit500 library not available: %s", err)
+            raise
+
+        # Auth handles login internally via async_login
+        auth = await Auth.async_login(self._username, self._password)
+        self._client = PyIt500(auth)
+
+        # Optional sanity check – fetch user
+        try:
+            await self._client.async_get_user()
+        except Exception as err:
+            _LOGGER.error("Failed to fetch IT500 user: %s", err)
             raise
 
     async def poll_status(self) -> dict[str, Any]:
-        """Poll status from gateway."""
+        """Poll status from IT500 cloud."""
         if not self._client:
-            raise RuntimeError("Gateway not connected")
+            raise RuntimeError("IT500 gateway not connected")
 
-        device_data = await self._client.get_device_data(self._device_id)
-        
-        # Transform IT500 data to common format
+        # Fetch device object from API
+        device = await self._client.async_get_device(self._device_id)
+
+        # Try to convert Device object to a dict-like structure
+        if isinstance(device, dict):
+            raw = device
+        elif hasattr(device, "to_dict"):
+            raw = device.to_dict()
+        elif hasattr(device, "__dict__"):
+            raw = vars(device)
+        else:
+            raw = {}
+            _LOGGER.warning(
+                "Unsupported device type returned from pyit500 for %s: %s",
+                self._device_id,
+                type(device),
+            )
+
+        # Map to common structure, using IT500-style field names if present
+        model = raw.get("product", "IT500")
+
+        current_temp = raw.get("CH1currentTemperature")
+        target_temp = raw.get("CH1currentSetPoint")
+        heat_on_off = raw.get("CH1heatOnOff")
+        heat_off_on = raw.get("CH1heatOffOn")
+        auto_off = raw.get("CH1autoOff", "manual")
+
+        hvac_mode = self._get_hvac_mode(heat_off_on, auto_off)
+        is_heating = heat_on_off == 1
+
         self._device_data = {
             "climate": {
                 self._device_id: {
-                    "model": device_data.get("product", "IT500"),
-                    "current_temperature": device_data.get("CH1currentTemperature"),
-                    "target_temperature": device_data.get("CH1currentSetPoint"),
-                    "hvac_mode": self._get_hvac_mode(device_data),
-                    "is_heating": device_data.get("CH1heatOnOff") == 1,
-                    "preset_mode": device_data.get("CH1autoOff", "manual"),
+                    "model": model,
+                    "current_temperature": current_temp,
+                    "target_temperature": target_temp,
+                    "hvac_mode": hvac_mode,
+                    "is_heating": is_heating,
+                    "preset_mode": auto_off,
                 }
             },
             "binary_sensor": {},
@@ -179,21 +231,25 @@ class IT500Gateway(SalusGatewayBase):
             "switch": {},
             "cover": {},
         }
-        
+
         return self._device_data
 
-    def _get_hvac_mode(self, data: dict) -> str:
-        """Get HVAC mode from IT500 data."""
-        if data.get("CH1heatOffOn") == 0:
+    @staticmethod
+    def _get_hvac_mode(heat_off_on: Any, auto_off: Any) -> str:
+        """Get HVAC mode from IT500 flags."""
+        if heat_off_on == 0:
             return "off"
-        if data.get("CH1autoOff") == "auto":
+        if auto_off == "auto":
             return "auto"
         return "heat"
 
     async def close(self) -> None:
-        """Close connection to gateway."""
-        if self._client:
-            await self._client.close()
+        """Close connection.
+
+        pyit500 does not expose an explicit close(), so this is a no-op.
+        """
+        # Nothing to close for HTTP-based API, but method kept for interface compatibility.
+        return
 
     def get_climate_devices(self) -> dict[str, Any]:
         """Get climate devices."""
@@ -215,25 +271,27 @@ class IT500Gateway(SalusGatewayBase):
         """Get cover devices."""
         return self._device_data.get("cover", {})
 
-    async def set_climate_device_temperature(self, device_id: str, temperature: float) -> None:
-        """Set climate device temperature."""
-        if not self._client:
-            raise RuntimeError("Gateway not connected")
-        await self._client.set_temperature(device_id, temperature)
+    # Pentru moment, facem IT500 doar read-only; scrierea depinde
+    # de ce metode oferă librăria Device/pyit500 (nu sunt în snippetul pe care îl avem).
+
+    async def set_climate_device_temperature(
+        self, device_id: str, temperature: float
+    ) -> None:
+        """Set climate device temperature (NOT IMPLEMENTED YET)."""
+        raise NotImplementedError("Setting temperature is not implemented for IT500 yet")
 
     async def set_climate_device_mode(self, device_id: str, mode: str) -> None:
-        """Set climate device mode."""
-        if not self._client:
-            raise RuntimeError("Gateway not connected")
-        
-        mode_map = {"heat": 1, "off": 0, "auto": 1}
-        await self._client.set_mode(device_id, mode_map.get(mode, 1))
+        """Set climate device mode (NOT IMPLEMENTED YET)."""
+        raise NotImplementedError("Setting mode is not implemented for IT500 yet")
 
     async def set_climate_device_preset(self, device_id: str, preset: str) -> None:
-        """Set climate device preset."""
-        if not self._client:
-            raise RuntimeError("Gateway not connected")
-        await self._client.set_preset(device_id, preset)
+        """Set climate device preset (NOT IMPLEMENTED YET)."""
+        raise NotImplementedError("Setting preset is not implemented for IT500 yet")
+
+
+# ---------------------------------------------------------------------------
+# Factory
+# ---------------------------------------------------------------------------
 
 
 def create_gateway(gateway_type: str, **kwargs) -> SalusGatewayBase:
@@ -243,11 +301,12 @@ def create_gateway(gateway_type: str, **kwargs) -> SalusGatewayBase:
             host=kwargs["host"],
             euid=kwargs["euid"],
         )
-    elif gateway_type == GATEWAY_TYPE_IT500:
+
+    if gateway_type == GATEWAY_TYPE_IT500:
         return IT500Gateway(
             username=kwargs["username"],
             password=kwargs["password"],
             device_id=kwargs["device_id"],
         )
-    else:
-        raise ValueError(f"Unknown gateway type: {gateway_type}")
+
+    raise ValueError(f"Unknown gateway type: {gateway_type}")
