@@ -145,7 +145,7 @@ class IT500Gateway(SalusGatewayBase):
     async def connect(self) -> None:
         """Connect to the gateway."""
         try:
-            from pyit500 import IT500Client
+            from pyit500.client import IT500Client
             
             self._client = IT500Client(self._username, self._password)
             await self._client.login()
