@@ -106,8 +106,8 @@ async def validate_it500(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {"title": f"Salus IT500 Device {device_id}"}
 
 
-class SalusConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Salus Enhanced."""
+class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Salus Enhanced Integration."""
 
     VERSION = 1
 
