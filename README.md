@@ -1,73 +1,103 @@
-# Salus Enhanced - Home Assistant Integration
+# Salus Enhanced – Home Assistant Integration
 
-O integrare îmbunătățită pentru Home Assistant care suportă **IT600 și IT500** - multiple modele Salus și entități extinse.
+An enhanced Home Assistant integration that supports **IT600 and IT500** gateways, multiple Salus device models, and extended entities.
 
-## 🚀 Caracteristici
+> ⚠️ **Important (v1.0.1):**
+> The `config_flow` is currently **not working** in version **1.0.1**.
+> This means the integration **cannot be added from the UI** yet.
+> Please use **YAML configuration** as described below.
 
-- **Suport pentru IT600 și IT500**: Control local (IT600) și cloud (IT500)
-- **Suport extins pentru dispozitive**: Termostați, senzori, întrerupătoare, jaluzele și senzori binari
-- **Modele multiple Salus**: 
-  - IT600: HTRP-RF, TS600, VS10/VS20, SQ610, FC600 + multe altele
-  - IT500: IT500, RT310i, RT310, RT510, RT520, XT500
-- **Entități bogate**: Temperatură, umiditate, baterie, stare încălzire, poziție valvă
-- **Configurare prin UI**: Config flow complet cu selecție tip gateway
-- **Actualizări coordonate**: Folosește DataUpdateCoordinator pentru eficiență
-- **Modular și extensibil**: Cod structurat pentru adăugarea ușoară de noi dispozitive
+---
 
-## 📦 Instalare
+## 🚀 Features
 
-### HACS (Recomandat)
+- **IT600 & IT500 support**: Local control (IT600) and cloud control (IT500)
+- **Extended device support**: Thermostats, sensors, switches, covers, and binary sensors
+- **Multiple Salus models supported**:
+  - **IT600**: HTRP-RF, TS600, VS10/VS20, SQ610, FC600, and many more
+  - **IT500**: IT500, RT310i, RT310, RT510, RT520, XT500
+- **Rich entities**: Temperature, humidity, battery level, heating state, valve position
+- **Coordinated updates**: Uses `DataUpdateCoordinator` for efficiency
+- **Modular & extensible**: Clean code structure for easy addition of new devices
 
-1. Deschide HACS în Home Assistant
-2. Mergi la "Integrations"
-3. Click pe "..." (top-right) și selectează "Custom repositories"
-4. Adaugă URL-ul acestui repo și selectează categoria "Integration"
-5. Click "Install"
+---
+
+## 📦 Installation
+
+### HACS (Recommended)
+
+1. Open **HACS** in Home Assistant
+2. Go to **Integrations**
+3. Click **"..."** (top-right) → **Custom repositories**
+4. Add this repository URL and select **Integration**
+5. Click **Install**
 6. Restart Home Assistant
 
-### Manual
+### Manual Installation
 
-1. Copiază folderul `custom_components/salus_enhanced` în `/config/custom_components/`
+1. Copy the folder:
+   ```
+   custom_components/salus_enhanced
+   ```
+   to:
+   ```
+   /config/custom_components/
+   ```
 2. Restart Home Assistant
 
-## ⚙️ Configurare
+---
 
-### IT600 (Gateway Local - UGE600)
+## ⚙️ Configuration (YAML – Required for v1.0.1)
 
-1. Mergi la **Settings** → **Devices & Services**
-2. Click pe **"+ Add Integration"**
-3. Caută **"Salus Enhanced"**
-4. Selectează **"IT600 (Local Gateway - UGE600)"**
-5. Introdu:
-   - **Host**: IP-ul local al gateway-ului (ex: `192.168.1.100`)
-   - **EUID**: EUID-ul gateway-ului (scris pe fundația acestuia, ex: `001E5E0D32906128`)
-     - Dacă nu funcționează, încearcă `0000000000000000`
+Since `config_flow` is not functional in **v1.0.1**, the integration must be configured via `configuration.yaml`.
 
-**Note IT600:**
-- Verifică că "Local WiFi Mode" este activat în aplicația Salus
-- Gateway-ul trebuie să fie în aceeași rețea cu Home Assistant
+### IT600 (Local Gateway – UGE600)
 
-### IT500 (Cloud - salus-it500.com)
+```yaml
+salus_enhanced:
+  platform: it600
+  host: 192.168.1.100
+  euid: "001E5E0D32906128"
+```
 
-1. Mergi la **Settings** → **Devices & Services**
-2. Click pe **"+ Add Integration"**
-3. Caută **"Salus Enhanced"**
-4. Selectează **"IT500 (Cloud - salus-it500.com)"**
-5. Introdu:
-   - **Email**: Email-ul tău de la salus-it500.com
-   - **Password**: Parola ta
-   - **Device ID**: ID-ul dispozitivului
+**Notes:**
+- `host` = local IP address of the IT600 gateway
+- `euid` = EUID printed on the gateway
+- If the real EUID does not work, try:
+  ```yaml
+  euid: "0000000000000000"
+  ```
+- Make sure **Local WiFi Mode** is enabled in the Salus app
+- Home Assistant and the gateway must be on the same network
 
-**Cum găsești Device ID pentru IT500:**
-1. Deschide browser și mergi la https://salus-it500.com
-2. Login cu email și parola din aplicația mobilă
-3. Click pe dispozitivul tău
-4. În URL vei vedea: `https://salus-it500.com/public/control.php?devId=34508332`
-5. Copiază numărul după `devId=` (ex: `34508332`)
+---
 
-## 🔧 Dispozitive Suportate
+### IT500 (Cloud – salus-it500.com)
 
-### IT600 - Termostați (Climate)
+```yaml
+salus_enhanced:
+  platform: it500
+  email: your@email.com
+  password: your_password
+  device_id: 34508332
+```
+
+#### How to find the IT500 Device ID
+
+1. Open https://salus-it500.com in a browser
+2. Log in with the same credentials as the mobile app
+3. Select your device
+4. In the URL you will see:
+   ```
+   https://salus-it500.com/public/control.php?devId=34508332
+   ```
+5. Copy the number after `devId=`
+
+---
+
+## 🔧 Supported Devices
+
+### IT600 – Thermostats (Climate)
 - HTRP-RF / HTRP-RF50
 - TS600
 - VS10WRF / VS10BRF
@@ -75,30 +105,30 @@ O integrare îmbunătățită pentru Home Assistant care suportă **IT600 și IT
 - SQ610 / SQ610RF
 - FC600
 
-### IT600 - Senzori Binari
-- SW600 (Senzor fereastră)
-- WLS600 (Senzor scurgere apă)
-- OS600 (Senzor ocupare)
-- SD600 (Detector fum)
-- MS600 (Senzor mișcare)
-- TRV10RFM (Cap termostatic)
-- RX10RF (Receptor)
+### IT600 – Binary Sensors
+- SW600 (Window sensor)
+- WLS600 (Water leak sensor)
+- OS600 (Occupancy sensor)
+- SD600 (Smoke detector)
+- MS600 (Motion sensor)
+- TRV10RFM (Thermostatic valve)
+- RX10RF (Receiver)
 
-### IT600 - Senzori
-- PS600 (Senzor temperatură)
-- Baterie (pentru toate dispozitivele compatibile)
-- Umiditate (de la termostate compatibile)
+### IT600 – Sensors
+- PS600 (Temperature sensor)
+- Battery level (all compatible devices)
+- Humidity (from supported thermostats)
 
-### IT600 - Întrerupătoare
+### IT600 – Switches
 - SPE600
 - RS600
 - SR600
 - SP600
 
-### IT600 - Jaluzele (Cover)
-- RS600 (Controller rolete)
+### IT600 – Covers
+- RS600 (Roller shutter controller)
 
-### IT500 - Termostați
+### IT500 – Thermostats
 - IT500
 - RT310i
 - RT310
@@ -106,94 +136,36 @@ O integrare îmbunătățită pentru Home Assistant care suportă **IT600 și IT
 - RT520
 - XT500
 
-## 📊 Entități Create
+---
 
-Pentru fiecare dispozitiv, integrarea creează:
+## 🛠️ Advanced Configuration
 
-### Climate (Termostați)
-- Entitate principală cu control temperatură
-- Atribute: baterie, umiditate, fereastră deschisă (IT600)
-- Moduri HVAC: Heat, Auto, Off
-- Preset modes: home, away, sleep, manual
+### Update Interval
 
-### Sensor
-- Temperatură curentă
-- Nivel baterie (dacă disponibil)
-- Umiditate (dacă disponibil)
-
-### Binary Sensor (IT600)
-- Stare (deschis/închis, detectare mișcare, etc.)
-- Atribute: nivel baterie
-
-### Switch (IT600)
-- Control on/off
-- Atribute: putere, energie consumată (dacă disponibil)
-
-### Cover (IT600)
-- Control deschidere/închidere
-- Setare poziție
-- Control stop
-
-## 🆚 Diferențe IT600 vs IT500
-
-| Caracteristică | IT600 | IT500 |
-|----------------|-------|-------|
-| **Control** | Local (LAN) | Cloud (Internet) |
-| **Gateway** | UGE600 | iTG500/iTG310 |
-| **Latență** | Foarte mică | Depinde de internet |
-| **Funcționare offline** | Da | Nu |
-| **Dispozitive suportate** | Multiple tipuri | Doar termostate |
-| **Configurare** | IP + EUID | Email + Password + Device ID |
-
-## 🛠️ Configurare Avansată
-
-### Interval Actualizare
-
-Poți modifica intervalul de actualizare în `const.py`:
+You can change the update interval in `const.py`:
 
 ```python
-SCAN_INTERVAL = 30  # secunde
+SCAN_INTERVAL = 30  # seconds
 ```
 
-### Adăugare Modele Noi
-
-Pentru a adăuga suport pentru un model nou, editează `IT600_DEVICE_MODELS` sau `IT500_DEVICE_MODELS` în `const.py`:
-
-```python
-IT600_DEVICE_MODELS = {
-    "climate": {
-        "MODEL_NOU": {"name": "Nume Afișat"},
-        # ...
-    }
-}
-```
+---
 
 ## 🐛 Troubleshooting
 
-### IT600 - Gateway-ul nu se conectează
-- Verifică că "Local WiFi Mode" este activat în aplicația Salus
-- Restart gateway (scoate/bagă USB)
-- Încearcă EUID `0000000000000000` dacă cel real nu funcționează
-- Verifică că gateway-ul este în aceeași rețea cu HA
+### Integration cannot be added from UI
+This is expected behavior in **v1.0.1**.
+Please use **YAML configuration** until `config_flow` support is fixed.
 
-### IT500 - Nu se poate conecta
-- Verifică email și parola (aceleași ca în app)
-- Verifică că Device ID este corect
-- Asigură-te că ai conexiune la internet
-- Unele cont-uri pot fi blocate temporar după login-uri eșuate (așteaptă 30 min)
+### Devices not appearing
+- Check Home Assistant logs
+- Ensure devices are configured in the Salus app
+- Restart Home Assistant after changing YAML
 
-### Dispozitivele nu apar
-- Verifică logs în Home Assistant
-- Asigură-te că dispozitivele sunt configurate în aplicația Salus
-- Restart integrarea
+---
 
-### Erori după actualizare HA
-- Verifică că ai ultima versiune a integrării
-- Șterge și re-adaugă integrarea dacă persistă problemele
+## 📝 Logging
 
-## 📝 Log-uri
-
-Pentru debugging, activează log-uri detaliate în `configuration.yaml`:
+Enable debug logging in `configuration.yaml`:
 
 ```yaml
 logger:
@@ -204,201 +176,18 @@ logger:
     pyit500: debug
 ```
 
-## 🤝 Contribuții
+---
 
-Contribuțiile sunt binevenite! Pentru a adăuga suport pentru un dispozitiv nou:
+## 📄 License
 
-1. Fork repository-ul
-2. Adaugă modelul în `const.py`
-3. Testează funcționalitatea
-4. Creează un Pull Request
+MIT License – see the LICENSE file for details
 
-## 📄 Licență
+---
 
-MIT License - vezi fișierul LICENSE pentru detalii
+## 🙏 Credits
 
-## 🙏 Credite
-
-Bazat pe:
-- [homeassistant_salus](https://github.com/epoplavskis/homeassistant_salus) de epoplavskis - pentru IT600
-- [pyit600](https://github.com/epoplavskis/pyit600) library
-- [home-assistant-salus-it500](https://github.com/RichyA/home-assistant-salus-it500) - pentru IT500
-- [pyit500](https://github.com/RichyA/pyit500) library
-
-## 📞 Suport
-
-Pentru probleme sau întrebări:
-- Deschide un [Issue pe GitHub](https://github.com/yourusername/salus_enhanced/issues)
-- Consultă [Home Assistant Community](https://community.home-assistant.io/)
-
-## 🚀 Caracteristici
-
-- **Suport extins pentru dispozitive**: Termostați, senzori, întrerupătoare, jaluzele și senzori binari
-- **Modele multiple Salus**: HTRP-RF, TS600, VS10/VS20, SQ610, FC600 și multe altele
-- **Entități bogate**: Temperatură, umiditate, baterie, stare încălzire, poziție valvă
-- **Configurare prin UI**: Config flow complet pentru setup ușor
-- **Actualizări coordonate**: Folosește DataUpdateCoordinator pentru eficiență
-- **Modular și extensibil**: Cod structurat pentru adăugarea ușoară de noi dispozitive
-
-## 📦 Instalare
-
-### HACS (Recomandat)
-
-1. Deschide HACS în Home Assistant
-2. Mergi la "Integrations"
-3. Click pe "..." (top-right) și selectează "Custom repositories"
-4. Adaugă URL-ul acestui repo și selectează categoria "Integration"
-5. Click "Install"
-6. Restart Home Assistant
-
-### Manual
-
-1. Copiază folderul `custom_components/salus_enhanced` în `/config/custom_components/`
-2. Restart Home Assistant
-
-## ⚙️ Configurare
-
-1. Mergi la **Settings** → **Devices & Services**
-2. Click pe **"+ Add Integration"**
-3. Caută **"Salus Enhanced"**
-4. Introdu:
-   - **Host**: IP-ul local al gateway-ului (ex: `192.168.1.100`)
-   - **EUID**: EUID-ul gateway-ului (scris pe fundația acestuia, ex: `001E5E0D32906128`)
-     - Dacă nu funcționează, încearcă `0000000000000000`
-
-## 🔧 Dispozitive Suportate
-
-### Termostați (Climate)
-- HTRP-RF / HTRP-RF50
-- TS600
-- VS10WRF / VS10BRF
-- VS20WRF / VS20BRF
-- SQ610 / SQ610RF
-- FC600
-
-### Senzori Binari
-- SW600 (Senzor fereastră)
-- WLS600 (Senzor scurgere apă)
-- OS600 (Senzor ocupare)
-- SD600 (Detector fum)
-- MS600 (Senzor mișcare)
-- TRV10RFM (Cap termostatic)
-- RX10RF (Receptor)
-
-### Senzori
-- PS600 (Senzor temperatură)
-- Baterie (pentru toate dispozitivele compatibile)
-- Umiditate (de la termostate compatibile)
-
-### Întrerupătoare
-- SPE600
-- RS600
-- SR600
-- SP600
-
-### Jaluzele (Cover)
-- RS600 (Controller rolete)
-
-## 📊 Entități Create
-
-Pentru fiecare dispozitiv, integrarea creează:
-
-### Climate (Termostați)
-- Entitate principală cu control temperatură
-- Atribute: baterie, umiditate, fereastră deschisă
-- Moduri HVAC: Heat, Auto, Off
-- Preset modes: home, away, sleep, manual
-
-### Sensor
-- Temperatură curentă
-- Nivel baterie (dacă disponibil)
-- Umiditate (dacă disponibil)
-
-### Binary Sensor
-- Stare (deschis/închis, detectare mișcare, etc.)
-- Atribute: nivel baterie
-
-### Switch
-- Control on/off
-- Atribute: putere, energie consumată (dacă disponibil)
-
-### Cover
-- Control deschidere/închidere
-- Setare poziție
-- Control stop
-
-## 🛠️ Configurare Avansată
-
-### Interval Actualizare
-
-Poți modifica intervalul de actualizare în `const.py`:
-
-```python
-SCAN_INTERVAL = 30  # secunde
-```
-
-### Adăugare Modele Noi
-
-Pentru a adăuga suport pentru un model nou, editează `DEVICE_MODELS` în `const.py`:
-
-```python
-DEVICE_MODELS = {
-    "climate": {
-        "MODEL_NOU": {"name": "Nume Afișat"},
-        # ...
-    }
-}
-```
-
-## 🐛 Troubleshooting
-
-### Gateway-ul nu se conectează
-- Verifică că "Local WiFi Mode" este activat în aplicația Salus
-- Restart gateway (scoate/bagă USB)
-- Încearcă EUID `0000000000000000` dacă cel real nu funcționează
-
-### Dispozitivele nu apar
-- Verifică logs în Home Assistant
-- Asigură-te că dispozitivele sunt configurate în aplicația Salus
-- Restart integrarea
-
-### Erori după actualizare HA
-- Verifică că ai ultima versiune a integrării
-- Șterge și re-adaugă integrarea dacă persistă problemele
-
-## 📝 Log-uri
-
-Pentru debugging, activează log-uri detaliate în `configuration.yaml`:
-
-```yaml
-logger:
-  default: info
-  logs:
-    custom_components.salus_enhanced: debug
-    pyit600: debug
-```
-
-## 🤝 Contribuții
-
-Contribuțiile sunt binevenite! Pentru a adăuga suport pentru un dispozitiv nou:
-
-1. Fork repository-ul
-2. Adaugă modelul în `const.py`
-3. Testează funcționalitatea
-4. Creează un Pull Request
-
-## 📄 Licență
-
-MIT License - vezi fișierul LICENSE pentru detalii
-
-## 🙏 Credite
-
-Bazat pe:
-- [homeassistant_salus](https://github.com/epoplavskis/homeassistant_salus) de epoplavskis
-- [pyit600](https://github.com/epoplavskis/pyit600) library
-
-## 📞 Suport
-
-Pentru probleme sau întrebări:
-- Deschide un [Issue pe GitHub](https://github.com/yourusername/salus_enhanced/issues)
-- Consultă [Home Assistant Community](https://community.home-assistant.io/)
+Based on:
+- https://github.com/epoplavskis/homeassistant_salus (IT600)
+- https://github.com/epoplavskis/pyit600
+- https://github.com/RichyA/home-assistant-salus-it500 (IT500)
+- https://github.com/RichyA/pyit500
